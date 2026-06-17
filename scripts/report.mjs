@@ -16,6 +16,7 @@ function parseArgs(argv) {
       case '--timesheet': args.view = 'timesheet'; break;
       case '--by-project': args.view = 'by-project'; break;
       case '--by-day': args.view = 'by-day'; break;
+      case '--by-tool': args.view = 'by-tool'; break;
       case '--project': args.filterProject = argv[++i]; break;
       case '--json': args.json = true; break;
     }
@@ -73,6 +74,7 @@ export function calculateActiveTime(events, breakThreshold) {
           date: evts[i].ts.slice(0, 10),
           duration: gap,
           session: sessionId,
+          source: evts[i].source || null,
         });
       }
     }
@@ -131,19 +133,36 @@ function printReport(slices, events, args) {
     for (const [date, dur] of Object.entries(grouped).sort()) {
       console.log(date.padEnd(15) + formatDuration(dur).padStart(10));
     }
-  } else {
-    // Default: day x project
+  } else if (args.view === 'by-tool') {
     const grouped = {};
     for (const s of slices) {
-      const key = `${s.date}|${s.project}`;
+      const tool = s.source || 'unknown';
+      grouped[tool] ||= { total: 0, projects: {} };
+      grouped[tool].total += s.duration;
+      grouped[tool].projects[s.project] = (grouped[tool].projects[s.project] || 0) + s.duration;
+    }
+    console.log('Tool / Project'.padEnd(30) + 'Active'.padStart(10) + 'Prompts'.padStart(10));
+    console.log('─'.repeat(50));
+    for (const [tool, data] of Object.entries(grouped).sort((a, b) => b[1].total - a[1].total)) {
+      const prompts = countPrompts(events, e => e.source === tool);
+      console.log(tool.padEnd(30) + formatDuration(data.total).padStart(10) + String(prompts).padStart(10));
+      for (const [proj, dur] of Object.entries(data.projects).sort((a, b) => b[1] - a[1])) {
+        console.log(('  ' + proj).padEnd(30) + formatDuration(dur).padStart(10));
+      }
+    }
+  } else {
+    // Default: day x project x tool
+    const grouped = {};
+    for (const s of slices) {
+      const key = `${s.date}|${s.project}|${s.source || '?'}`;
       grouped[key] = (grouped[key] || 0) + s.duration;
     }
-    console.log('Date'.padEnd(13) + 'Project'.padEnd(25) + 'Active'.padStart(10) + 'Prompts'.padStart(10));
-    console.log('─'.repeat(58));
+    console.log('Date'.padEnd(13) + 'Project'.padEnd(22) + 'Tool'.padEnd(8) + 'Active'.padStart(8) + 'Prompts'.padStart(9));
+    console.log('─'.repeat(60));
     for (const [key, dur] of Object.entries(grouped).sort()) {
-      const [date, proj] = key.split('|');
-      const prompts = countPrompts(events, e => e.ts.startsWith(date) && e.project === proj);
-      console.log(date.padEnd(13) + proj.padEnd(25) + formatDuration(dur).padStart(10) + String(prompts).padStart(10));
+      const [date, proj, tool] = key.split('|');
+      const prompts = countPrompts(events, e => e.ts.startsWith(date) && e.project === proj && (e.source || '?') === tool);
+      console.log(date.padEnd(13) + proj.padEnd(22) + tool.padEnd(8) + formatDuration(dur).padStart(8) + String(prompts).padStart(9));
     }
   }
 
