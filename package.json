@@ -1,6 +1,6 @@
 {
   "name": "@steveh204/ailog",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automatic time tracking for AI coding assistants (Kiro CLI + Claude Code). Reports for freelance billing.",
   "type": "module",
   "bin": {

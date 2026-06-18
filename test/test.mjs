@@ -9,6 +9,9 @@ const TEST_SESSIONS = join(TEST_DIR, 'sessions');
 const TEST_TIMELOG = join(TEST_DIR, 'timelog');
 process.env.AILOG_DIR = TEST_TIMELOG;
 process.env.CLAUDE_HISTORY_FILE = '/dev/null';
+process.env.CLAUDE_DIR = '/nonexistent';
+process.env.CODEX_DB_PATH = '/dev/null';
+process.env.GEMINI_DIR = '/nonexistent';
 
 const { loadConfig, detectProject, matchTicket, getOS } = await import('../lib/config.mjs');
 const { scanSessions } = await import('../scripts/scan.mjs');
