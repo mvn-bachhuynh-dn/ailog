@@ -22,6 +22,52 @@ if (args.includes('--version') || args.includes('-v')) {
   console.log(`ailog v${pkg.version}`);
   process.exit(0);
 }
+if (args.includes('--help') || args.includes('-h')) {
+  const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+  console.log(`ailog v${pkg.version} — AI CLI time tracker
+
+Usage:
+  ailog [options] [<from-date> - <to-date>]
+
+Period:
+  --week                This week (default)
+  --month               This calendar month
+  --from YYYY-MM-DD     Custom start date
+  --to YYYY-MM-DD       Custom end date
+  <DD-MM-YYYY> - <DD-MM-YYYY>
+                        Shorthand date range (e.g. 15-06-2026 - 14-07-2026)
+
+View:
+  --timesheet           Project × ticket summary
+  --by-project          Group by project
+  --by-day              Group by day
+  --by-tool             Group by AI tool (kiro, claude, codex, gemini)
+
+Filter:
+  --project <name>      Filter by project name
+
+Output:
+  --json                JSON output for automation
+
+Scheduler:
+  install-scheduler     Enable auto-scan (every 5 min)
+  uninstall-scheduler   Disable auto-scan
+
+Other:
+  -v, --version         Show version
+  -h, --help            Show this help
+  --update              Update to latest version
+
+Examples:
+  ailog                           This week's report
+  ailog --month --by-tool         This month grouped by tool
+  ailog 01-06-2026 - 30-06-2026   June 2026
+  ailog --from 2026-06-01 --to 2026-06-30  Same as above
+  ailog --project myapp --timesheet
+
+Documentation: https://github.com/mvn-bachhuynh-dn/ailog`);
+  process.exit(0);
+}
 if (args.includes('--update')) {
   console.log('Checking for updates...');
   try {

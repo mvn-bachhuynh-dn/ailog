@@ -15,7 +15,7 @@ process.env.GEMINI_DIR = '/nonexistent';
 
 const { loadConfig, detectProject, matchTicket, getOS, detectProjectFromText, isParentProject } = await import('../lib/config.mjs');
 const { scanSessions } = await import('../scripts/scan.mjs');
-const { calculateActiveTime, loadEvents } = await import('../scripts/report.mjs');
+const { calculateActiveTime, loadEvents, parseArgs, normalizeDateArg } = await import('../scripts/report.mjs');
 
 // ═══════════════════════════════════════
 // Helpers
@@ -481,6 +481,61 @@ describe('Project Detection from Text', () => {
 
 // ═══════════════════════════════════════
 // Cleanup
+// ═══════════════════════════════════════
+describe('parseArgs and date range', () => {
+  it('normalizeDateArg converts DD-MM-YYYY to YYYY-MM-DD', () => {
+    assert.strictEqual(normalizeDateArg('15-06-2026'), '2026-06-15');
+    assert.strictEqual(normalizeDateArg('01-12-2025'), '2025-12-01');
+  });
+
+  it('normalizeDateArg passes through YYYY-MM-DD unchanged', () => {
+    assert.strictEqual(normalizeDateArg('2026-06-15'), '2026-06-15');
+  });
+
+  it('normalizeDateArg handles null/undefined', () => {
+    assert.strictEqual(normalizeDateArg(null), null);
+    assert.strictEqual(normalizeDateArg(undefined), undefined);
+  });
+
+  it('parseArgs handles shorthand DD-MM-YYYY - DD-MM-YYYY', () => {
+    const args = parseArgs(['node', 'report.mjs', '15-06-2026', '-', '14-07-2026']);
+    assert.strictEqual(args.from, '2026-06-15');
+    assert.strictEqual(args.to, '2026-07-14');
+  });
+
+  it('parseArgs handles shorthand YYYY-MM-DD - YYYY-MM-DD', () => {
+    const args = parseArgs(['node', 'report.mjs', '2026-06-15', '-', '2026-07-14']);
+    assert.strictEqual(args.from, '2026-06-15');
+    assert.strictEqual(args.to, '2026-07-14');
+  });
+
+  it('parseArgs shorthand works with other flags', () => {
+    const args = parseArgs(['node', 'report.mjs', '01-06-2026', '-', '30-06-2026', '--by-day']);
+    assert.strictEqual(args.from, '2026-06-01');
+    assert.strictEqual(args.to, '2026-06-30');
+    assert.strictEqual(args.view, 'by-day');
+  });
+
+  it('parseArgs --from/--to accepts DD-MM-YYYY format', () => {
+    const args = parseArgs(['node', 'report.mjs', '--from', '15-06-2026', '--to', '14-07-2026']);
+    assert.strictEqual(args.from, '2026-06-15');
+    assert.strictEqual(args.to, '2026-07-14');
+  });
+
+  it('parseArgs --from/--to still works with YYYY-MM-DD', () => {
+    const args = parseArgs(['node', 'report.mjs', '--from', '2026-06-15', '--to', '2026-07-14']);
+    assert.strictEqual(args.from, '2026-06-15');
+    assert.strictEqual(args.to, '2026-07-14');
+  });
+
+  it('parseArgs defaults to period=week with no args', () => {
+    const args = parseArgs(['node', 'report.mjs']);
+    assert.strictEqual(args.period, 'week');
+    assert.strictEqual(args.from, undefined);
+    assert.strictEqual(args.to, undefined);
+  });
+});
+
 // ═══════════════════════════════════════
 describe('Cleanup', () => {
   it('remove test dir', () => { clean(); assert.ok(true); });
