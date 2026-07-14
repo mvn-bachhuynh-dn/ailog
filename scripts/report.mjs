@@ -5,20 +5,41 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TIMELOG_DIR, loadConfig } from '../lib/config.mjs';
 
-function parseArgs(argv) {
+/**
+ * Convert DD-MM-YYYY to YYYY-MM-DD, or return as-is if already YYYY-MM-DD.
+ */
+export function normalizeDateArg(str) {
+  if (!str) return str;
+  const dmy = str.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  return str;
+}
+
+export function parseArgs(argv) {
   const args = { period: 'week' };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--week': args.period = 'week'; break;
       case '--month': args.period = 'month'; break;
-      case '--from': args.from = argv[++i]; break;
-      case '--to': args.to = argv[++i]; break;
+      case '--from': args.from = normalizeDateArg(argv[++i]); break;
+      case '--to': args.to = normalizeDateArg(argv[++i]); break;
       case '--timesheet': args.view = 'timesheet'; break;
       case '--by-project': args.view = 'by-project'; break;
       case '--by-day': args.view = 'by-day'; break;
       case '--by-tool': args.view = 'by-tool'; break;
       case '--project': args.filterProject = argv[++i]; break;
       case '--json': args.json = true; break;
+      default: {
+        // Shorthand date range: <DD-MM-YYYY> - <DD-MM-YYYY>
+        // Also supports YYYY-MM-DD - YYYY-MM-DD
+        const datePattern = /^\d{2}-\d{2}-\d{4}$|^\d{4}-\d{2}-\d{2}$/;
+        if (datePattern.test(argv[i]) && argv[i + 1] === '-' && datePattern.test(argv[i + 2])) {
+          args.from = normalizeDateArg(argv[i]);
+          args.to = normalizeDateArg(argv[i + 2]);
+          i += 2;
+        }
+        break;
+      }
     }
   }
   return args;
